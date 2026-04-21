@@ -7,7 +7,7 @@ import cors from "cors";
 
 dotenv.config();
 
-// MongoDB Schema
+// MongoDB Schemas
 const userSchema = new mongoose.Schema({
   email: { type: String, unique: true, required: true },
   password: { type: String, required: true },
