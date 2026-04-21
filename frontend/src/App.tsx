@@ -221,9 +221,10 @@ export default function App() {
   const [paymentSearchTerm, setPaymentSearchTerm] = useState('');
   const [viewingPassDetails, setViewingPassDetails] = useState<BusPass | null>(null);
 
-  const [paymentMethod, setPaymentMethod] = useState<'card' | 'upi'>('upi');
+  const [paymentMethod, setPaymentMethod] = useState<'card' | 'upi'>('card');
   const [cardDetails, setCardDetails] = useState({ number: '4242 4242 4242 4242', expiry: '12/26', cvv: '123' });
   const [cardErrors, setCardErrors] = useState({ number: false, expiry: false, cvv: false });
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const triggerToast = (msg: string, status: 'success' | 'error' | 'warning') => {
     setToastMessage(msg);
@@ -715,11 +716,14 @@ export default function App() {
           body: JSON.stringify({ email, password, displayName })
         });
         if (response.ok) {
-          setAuthMessage('Account created successfully! Please sign in.');
+          // Clear any existing error message first
+          setAuthMessage(null);
+          // Switch to signin mode - form key change will force remount with empty fields
           setAuthMode('signin');
-          // Clear form fields manually
-          const form = e.currentTarget;
-          form.reset();
+          // Show success message after mode switch
+          setTimeout(() => {
+            setAuthMessage('Account created successfully! Please sign in.');
+          }, 100);
         } else {
           const error = await response.json();
           setAuthMessage(`Error: ${error.error || 'Signup failed'}`);
@@ -1149,8 +1153,8 @@ export default function App() {
     return (
       <div className="min-h-screen bg-brand-bg flex flex-col font-sans">
         {/* Public Navbar duplicated for consistency */}
-        <nav className="w-full bg-white/80 backdrop-blur-md border-b border-[#EDF2FB] px-8 py-4 flex justify-between items-center fixed top-0 z-50">
-          <motion.div 
+        <nav className="w-full bg-white/80 backdrop-blur-md border-b border-[#EDF2FB] px-4 lg:px-8 py-4 flex justify-between items-center fixed top-0 z-50">
+          <motion.div
             onClick={() => setView('landing')}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
@@ -1159,22 +1163,28 @@ export default function App() {
             <div className="w-8 h-8 bg-brand-primary rounded-lg flex items-center justify-center shadow-lg shadow-brand-primary/20 group-hover:rotate-12 transition-transform">
               <Bus className="text-white w-4 h-4" />
             </div>
-            <span className="font-black text-xl text-brand-ink uppercase tracking-tight">Bus Pass Pro</span>
+            <span className="font-black text-lg lg:text-xl text-brand-ink uppercase tracking-tight">Bus Pass Pro</span>
           </motion.div>
-          <div className="flex items-center gap-8">
-            <button onClick={() => setView('landing')} className="text-sm font-bold text-brand-gray hover:text-brand-primary transition-colors">Home</button>
-            <button onClick={() => setView('about')} className={`text-sm font-bold transition-colors ${view === 'about' ? 'text-brand-primary' : 'text-brand-gray hover:text-brand-primary'}`}>About Us</button>
-            <button onClick={() => setView('contact')} className={`text-sm font-bold transition-colors ${view === 'contact' ? 'text-brand-primary' : 'text-brand-gray hover:text-brand-primary'}`}>Contact</button>
-            <button 
+          <div className="flex items-center gap-2 lg:gap-8">
+            <button onClick={() => setView('landing')} className="hidden sm:block text-sm font-bold text-brand-gray hover:text-brand-primary transition-colors">Home</button>
+            <button onClick={() => setView('about')} className={`hidden sm:block text-sm font-bold transition-colors ${view === 'about' ? 'text-brand-primary' : 'text-brand-gray hover:text-brand-primary'}`}>About Us</button>
+            <button onClick={() => setView('contact')} className={`hidden sm:block text-sm font-bold transition-colors ${view === 'contact' ? 'text-brand-primary' : 'text-brand-gray hover:text-brand-primary'}`}>Contact</button>
+            <button
               onClick={() => { setAuthMessage(null); setAuthMode('signin'); setView('auth'); }}
-              className="bg-brand-primary text-white px-6 py-2.5 rounded-xl font-bold text-sm shadow-xl shadow-brand-primary/10 hover:scale-105 transition-all"
+              className="hidden md:block bg-brand-primary text-white px-6 py-2.5 rounded-xl font-bold text-sm shadow-xl shadow-brand-primary/10 hover:scale-105 transition-all"
+            >
+              Sign In
+            </button>
+            <button
+              onClick={() => { setAuthMessage(null); setAuthMode('signin'); setView('auth'); }}
+              className="md:hidden bg-brand-primary text-white px-4 py-2 rounded-xl font-bold text-sm shadow-xl shadow-brand-primary/10"
             >
               Sign In
             </button>
           </div>
         </nav>
 
-        <div className="flex-1 pt-24 pb-12 px-4 max-w-6xl mx-auto w-full">
+        <div className="flex-1 pt-20 lg:pt-24 pb-12 px-4 max-w-6xl mx-auto w-full">
           {view === 'about' ? (
             <motion.div 
               initial={{ opacity: 0, y: 20 }}
@@ -1404,8 +1414,59 @@ export default function App() {
   if (view === 'landing' && !user) {
     return (
       <div className="min-h-screen bg-brand-bg flex flex-col font-sans overflow-x-hidden">
+        {/* Mobile Menu Overlay */}
+        <AnimatePresence>
+          {sidebarOpen && (
+            <>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setSidebarOpen(false)}
+                className="fixed inset-0 bg-black/50 z-40 md:hidden"
+              />
+              <motion.div
+                initial={{ x: '100%' }}
+                animate={{ x: 0 }}
+                exit={{ x: '100%' }}
+                transition={{ type: 'tween', duration: 0.3 }}
+                className="fixed inset-y-0 right-0 w-72 bg-white z-50 md:hidden flex flex-col"
+              >
+                <div className="flex items-center justify-between p-4 border-b border-[#EDF2FB]">
+                  <span className="font-black text-lg text-brand-ink">Menu</span>
+                  <button
+                    onClick={() => setSidebarOpen(false)}
+                    className="p-2 rounded-xl hover:bg-gray-100 text-brand-gray"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+                <div className="flex flex-col p-4 gap-2">
+                  <button onClick={() => { setView('landing'); setSidebarOpen(false); }} className="text-left px-4 py-3 rounded-xl font-bold text-brand-primary hover:bg-brand-bg transition-colors">Home</button>
+                  <button onClick={() => { setView('about'); setSidebarOpen(false); }} className="text-left px-4 py-3 rounded-xl font-bold text-brand-gray hover:bg-brand-bg hover:text-brand-primary transition-colors">About Us</button>
+                  <button onClick={() => { setView('contact'); setSidebarOpen(false); }} className="text-left px-4 py-3 rounded-xl font-bold text-brand-gray hover:bg-brand-bg hover:text-brand-primary transition-colors">Contact</button>
+                  <div className="border-t border-[#EDF2FB] my-2"></div>
+                  <button 
+                    onClick={() => { setAuthMessage(null); setAuthMode('signin'); setView('auth'); setSidebarOpen(false); }}
+                    className="text-left px-4 py-3 rounded-xl font-bold text-brand-ink hover:bg-brand-bg hover:text-brand-primary transition-colors flex items-center gap-2"
+                  >
+                    <ShieldCheck className="w-4 h-4" />
+                    Admin Portal
+                  </button>
+                  <button 
+                    onClick={() => { setAuthMessage(null); setAuthMode('signin'); setView('auth'); setSidebarOpen(false); }}
+                    className="mt-2 bg-brand-primary text-white px-4 py-3 rounded-xl font-black text-sm shadow-lg shadow-brand-primary/20 hover:scale-105 transition-all"
+                  >
+                    Sign In
+                  </button>
+                </div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
+
         {/* Public Navbar */}
-        <nav className="w-full bg-white/80 backdrop-blur-md border-b border-[#EDF2FB] px-8 py-4 flex justify-between items-center fixed top-0 z-50">
+        <nav className="w-full bg-white/80 backdrop-blur-md border-b border-[#EDF2FB] px-4 sm:px-6 lg:px-8 py-3 sm:py-4 flex justify-between items-center fixed top-0 z-50">
           <motion.div 
             onClick={() => setView('landing')}
             whileHover={{ scale: 1.05 }}
@@ -1415,9 +1476,11 @@ export default function App() {
             <div className="w-8 h-8 bg-brand-primary rounded-lg flex items-center justify-center shadow-lg shadow-brand-primary/20 group-hover:rotate-12 transition-transform">
               <Bus className="text-white w-4 h-4" />
             </div>
-            <span className="font-black text-xl text-brand-ink uppercase tracking-tight">Bus Pass Pro</span>
+            <span className="font-black text-lg sm:text-xl text-brand-ink uppercase tracking-tight">Bus Pass Pro</span>
           </motion.div>
-          <div className="flex items-center gap-8">
+          
+          {/* Desktop Navigation */}
+          <div className="hidden md:flex items-center gap-6 lg:gap-8">
             <button onClick={() => setView('landing')} className="text-sm font-bold text-brand-primary transition-colors">Home</button>
             <button onClick={() => setView('about')} className="text-sm font-bold text-brand-gray hover:text-brand-primary transition-colors font-medium">About Us</button>
             <button onClick={() => setView('contact')} className="text-sm font-bold text-brand-gray hover:text-brand-primary transition-colors font-medium">Contact</button>
@@ -1430,11 +1493,19 @@ export default function App() {
             </button>
             <button 
               onClick={() => { setAuthMessage(null); setAuthMode('signin'); setView('auth'); }}
-              className="bg-brand-primary text-white px-7 py-3 rounded-xl font-black text-sm shadow-xl shadow-brand-primary/20 hover:scale-105 transition-all"
+              className="bg-brand-primary text-white px-5 lg:px-7 py-2.5 lg:py-3 rounded-xl font-black text-sm shadow-xl shadow-brand-primary/20 hover:scale-105 transition-all"
             >
               Sign In
             </button>
           </div>
+
+          {/* Mobile Hamburger Button */}
+          <button
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="md:hidden p-2 rounded-xl bg-white border-2 border-slate-300 text-brand-ink hover:bg-gray-50 transition-colors"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
         </nav>
 
         {/* Hero Section */}
@@ -1695,7 +1766,7 @@ export default function App() {
             <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-white/10 rounded-full blur-3xl"></div>
           </div>
 
-          <form className="p-10 space-y-6" onSubmit={handleAuth}>
+          <form key={authMode} className="p-10 space-y-6" onSubmit={handleAuth}>
             {authMessage && (
               <div className={`p-4 rounded-xl text-[10px] font-black uppercase tracking-wider border flex items-center gap-2 ${
                 authMessage.startsWith('Error') 
@@ -1788,8 +1859,21 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-brand-bg flex font-sans">
+      {/* Mobile Sidebar Overlay */}
+      <AnimatePresence>
+        {sidebarOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setSidebarOpen(false)}
+            className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          />
+        )}
+      </AnimatePresence>
+
       {/* Sidebar */}
-      <aside className="fixed inset-y-0 left-0 w-60 bg-white border-r-2 border-[#EDF2FB] flex flex-col p-8 z-30 overflow-hidden">
+      <aside className={`fixed inset-y-0 left-0 w-60 bg-white border-r-2 border-[#EDF2FB] flex flex-col p-6 lg:p-8 z-50 overflow-hidden transition-transform duration-300 ease-in-out ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0`}>
         <motion.div 
           onClick={() => {
             if (user?.role === 'Admin') {
@@ -1808,7 +1892,14 @@ export default function App() {
           <span className="font-black text-2xl tracking-tight text-brand-primary">Bus Pass Pro</span>
         </motion.div>
 
-        <nav className="space-y-2 flex-1">
+        <button
+          onClick={() => setSidebarOpen(false)}
+          className="lg:hidden absolute top-4 right-4 p-2 text-brand-gray hover:text-brand-ink"
+        >
+          <X className="w-5 h-5" />
+        </button>
+
+        <nav className="space-y-2 flex-1 mt-8 lg:mt-0">
           {user?.role === 'Admin' ? (
             <>
               <button
@@ -1858,9 +1949,16 @@ export default function App() {
       </aside>
 
       {/* Main Content */}
-      <main className="ml-60 flex-1 p-10 max-w-7xl mx-auto w-full">
-        <header className="flex justify-between items-center mb-10">
-          <h1 className="text-3xl font-black text-brand-ink">
+      <main className="flex-1 lg:ml-60 p-4 sm:p-6 lg:p-10 max-w-7xl mx-auto w-full">
+        {/* Mobile Header with Hamburger */}
+        <header className="flex items-center gap-4 mb-6 lg:mb-10">
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="lg:hidden p-2 rounded-xl bg-white border-2 border-slate-300 text-brand-ink"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-black text-brand-ink flex-1">
             {view === 'apply' ? (showApplicationForm ? 'New Application' : 'My Active Passes') : 
              view === 'dashboard' ? 'Welcome To Our Bus Pass Pro' :
              view === 'admin' ? 'Administrative Control' : 
@@ -1868,11 +1966,11 @@ export default function App() {
              view === 'contact' ? 'Support Portal' : 
              view === 'history' ? 'Transaction History' : 'Home'}
           </h1>
-          <div className="bg-white px-5 py-2.5 rounded-full shadow-sm flex items-center gap-3 border border-white">
-            <div className={`w-9 h-9 rounded-full ${user?.role === 'Admin' ? 'bg-red-100' : 'bg-brand-accent'} flex items-center justify-center shadow-inner`}>
+          <div className="hidden sm:flex bg-white px-3 lg:px-5 py-2 rounded-full shadow-sm items-center gap-2 lg:gap-3 border border-white">
+            <div className={`w-8 h-8 lg:w-9 lg:h-9 rounded-full ${user?.role === 'Admin' ? 'bg-red-100' : 'bg-brand-accent'} flex items-center justify-center shadow-inner`}>
                {user?.role === 'Admin' ? <ShieldCheck className="w-4 h-4 text-red-600" /> : <User className="w-4 h-4 text-brand-ink mt-0.5" />}
             </div>
-            <div className="flex flex-col">
+            <div className="hidden md:flex flex-col">
               <span className="font-bold text-sm text-brand-ink leading-none">{user?.displayName}</span>
               <span className="text-[10px] font-black text-brand-gray uppercase mt-1 leading-none">{user?.role}</span>
             </div>
@@ -1889,8 +1987,8 @@ export default function App() {
               className="space-y-10"
             >
               {/* System Specifications */}
-              <div className="grid lg:grid-cols-3 gap-8">
-                <div className="lg:col-span-2 bg-brand-ink p-12 rounded-[2.5rem] text-white relative overflow-hidden group">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-8">
+                <div className="lg:col-span-2 bg-brand-ink p-6 lg:p-12 rounded-2xl lg:rounded-[2.5rem] text-white relative overflow-hidden group">
                   <div className="relative z-10 space-y-6">
                     <h3 className="text-3xl font-black tracking-tight leading-tight">Ready to start your <br/>commuter journey?</h3>
                     <p className="text-white/60 font-medium max-w-md leading-relaxed">
@@ -1910,7 +2008,7 @@ export default function App() {
                   <div className="absolute -bottom-20 -right-20 w-80 h-80 bg-brand-primary/20 rounded-full blur-3xl group-hover:bg-brand-primary/30 transition-all"></div>
                 </div>
 
-                <div className="bg-white p-10 rounded-[2.5rem] border-2 border-slate-300 shadow-sm flex flex-col justify-center text-center space-y-6">
+                <div className="bg-white p-6 lg:p-10 rounded-2xl lg:rounded-[2.5rem] border-2 border-slate-300 shadow-sm flex flex-col justify-center text-center space-y-6">
                   <div className="w-20 h-20 bg-brand-bg rounded-3xl flex items-center justify-center mx-auto">
                     <ShieldCheck className="w-10 h-10 text-brand-primary" />
                   </div>
@@ -1926,10 +2024,10 @@ export default function App() {
               </div>
 
               {/* How it Works Section */}
-              <section className="bg-white rounded-[2.5rem] p-12 border-2 border-slate-300 shadow-sm overflow-hidden relative">
+              <section className="bg-white rounded-2xl lg:rounded-[2.5rem] p-6 lg:p-12 border-2 border-slate-300 shadow-sm overflow-hidden relative">
                 <div className="relative z-10">
-                  <h2 className="text-4xl font-black text-brand-ink mb-10 tracking-tight">How it Works</h2>
-                  <div className="grid md:grid-cols-3 gap-12">
+                  <h2 className="text-2xl lg:text-4xl font-black text-brand-ink mb-6 lg:mb-10 tracking-tight">How it Works</h2>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-12">
                     {[
                       { step: '01', title: 'Fill Application', text: 'Provide your details and documentation for verification.', icon: CreditCard },
                       { step: '02', title: 'Make Payment', text: 'Once approved, pay for your monthly or annual pass.', icon: Wallet },
@@ -1950,7 +2048,7 @@ export default function App() {
               </section>
 
               {/* Stats / Specs row */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 lg:gap-6">
                 {[
                   { label: 'Active Routes', value: '42+', icon: Bus },
                   { label: 'Daily Trips', value: '1.2k', icon: Clock },
@@ -1978,7 +2076,7 @@ export default function App() {
               className="space-y-8"
             >
               {/* Admin Sub-navigation */}
-                  <div className="flex gap-4 p-1.5 bg-white border-2 border-slate-300 rounded-2xl w-fit shadow-sm">
+                  <div className="flex flex-wrap gap-2 lg:gap-4 p-1.5 bg-white border-2 border-slate-300 rounded-2xl w-full lg:w-fit shadow-sm overflow-x-auto">
                 {[
                   { id: 'applications', label: 'Applications', icon: CreditCard },
                   { id: 'routes', label: 'Bus Routes', icon: Bus },
@@ -1989,7 +2087,7 @@ export default function App() {
                   <button
                     key={tab.id}
                     onClick={() => setAdminView(tab.id as AdminSubView)}
-                    className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold text-sm transition-all ${
+                    className={`flex items-center gap-2 px-4 lg:px-6 py-2 lg:py-2.5 rounded-xl font-bold text-sm transition-all whitespace-nowrap ${
                       adminView === tab.id 
                         ? 'bg-brand-primary text-white shadow-lg shadow-brand-primary/20' 
                         : 'text-brand-gray hover:text-brand-ink hover:bg-gray-50'
@@ -2002,33 +2100,34 @@ export default function App() {
               </div>
 
               {adminView === 'applications' && (
-                <div className="space-y-8">
-                  <div className="grid grid-cols-4 gap-6">
+                <div className="space-y-6 lg:space-y-8">
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-6">
                     {[
                       { label: 'Approved Request', value: allPasses.filter(p => p.status === 'Approved' || p.status === 'Active').length.toString().padStart(2, '0') },
                       { label: 'Pending Approval', value: allPasses.filter(p => p.status === 'Pending').length.toString().padStart(2, '0') },
                       { label: 'Revenue Generated', value: `₹${allPasses.reduce((acc, curr) => acc + curr.price, 0).toLocaleString('en-IN')}` },
                       { label: 'System Health', value: 'OPTIMAL' },
                     ].map((stat, i) => (
-                      <div key={i} className="bg-white p-6 rounded-3xl border-2 border-slate-300 shadow-sm">
-                        <p className="text-[10px] font-black text-brand-gray uppercase tracking-widest mb-2">{stat.label}</p>
-                        <p className="text-2xl font-black text-brand-ink">{stat.value}</p>
+                      <div key={i} className="bg-white p-3 sm:p-4 lg:p-6 rounded-xl sm:rounded-2xl lg:rounded-3xl border-2 border-slate-300 shadow-sm">
+                        <p className="text-[9px] sm:text-[10px] font-black text-brand-gray uppercase tracking-widest mb-1 lg:mb-2">{stat.label}</p>
+                        <p className="text-lg sm:text-xl lg:text-2xl font-black text-brand-ink">{stat.value}</p>
                       </div>
                     ))}
                   </div>
 
-                  <div className="bg-white rounded-[2.5rem] shadow-sm border-2 border-slate-300 overflow-hidden">
-                    <div className="p-8 border-b-2 border-slate-300 flex justify-between items-center bg-gray-50/50">
-                      <h2 className="text-xl font-black text-brand-ink">Application Management</h2>
+                  <div className="bg-white rounded-xl sm:rounded-2xl lg:rounded-[2.5rem] shadow-sm border-2 border-slate-300 overflow-hidden">
+                    <div className="p-3 sm:p-4 lg:p-8 border-b-2 border-slate-300 flex justify-between items-center bg-gray-50/50">
+                      <h2 className="text-lg sm:text-xl font-black text-brand-ink">Application Management</h2>
                     </div>
-                    <table className="w-full text-left">
+                    <div className="overflow-x-auto">
+                    <table className="w-full text-left min-w-[600px]">
                       <thead className="bg-white border-b-2 border-brand-primary/10">
                         <tr>
-                          <th className="px-8 py-5 text-[10px] font-black uppercase text-brand-gray tracking-widest">S.No</th>
-                          <th className="px-8 py-5 text-[10px] font-black uppercase text-brand-gray tracking-widest">Applicant</th>
-                          <th className="px-8 py-5 text-[10px] font-black uppercase text-brand-gray tracking-widest">Type</th>
-                          <th className="px-8 py-5 text-[10px] font-black uppercase text-brand-gray tracking-widest">Applied On</th>
-                          <th className="px-8 py-5 text-[10px] font-black uppercase text-brand-gray tracking-widest text-right"></th>
+                          <th className="px-4 sm:px-6 lg:px-8 py-3 sm:py-4 lg:py-5 text-[10px] font-black uppercase text-brand-gray tracking-widest">S.No</th>
+                          <th className="px-4 sm:px-6 lg:px-8 py-3 sm:py-4 lg:py-5 text-[10px] font-black uppercase text-brand-gray tracking-widest">Applicant</th>
+                          <th className="px-4 sm:px-6 lg:px-8 py-3 sm:py-4 lg:py-5 text-[10px] font-black uppercase text-brand-gray tracking-widest">Type</th>
+                          <th className="px-4 sm:px-6 lg:px-8 py-3 sm:py-4 lg:py-5 text-[10px] font-black uppercase text-brand-gray tracking-widest">Applied On</th>
+                          <th className="px-4 sm:px-6 lg:px-8 py-3 sm:py-4 lg:py-5 text-[10px] font-black uppercase text-brand-gray tracking-widest text-right"></th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-[#F0F4FF]">
@@ -2038,10 +2137,10 @@ export default function App() {
                           p.status?.toLowerCase().includes(appSearchTerm.toLowerCase())
                         ).map((p, i) => (
                           <tr key={p.id || (p as any)._id || `admin-p-${i}`} className="hover:bg-brand-bg/20 transition-colors">
-                            <td className="px-8 py-5 text-sm font-bold text-brand-gray">
+                            <td className="px-4 sm:px-6 lg:px-8 py-3 sm:py-4 lg:py-5 text-sm font-bold text-brand-gray">
                               {i + 1}
                             </td>
-                            <td className="px-8 py-5">
+                            <td className="px-4 sm:px-6 lg:px-8 py-3 sm:py-4 lg:py-5">
                               <div className="flex items-center gap-3">
                                 <div>
                                   <p className="text-sm font-bold text-brand-ink">{p.userName}</p>
@@ -2049,13 +2148,13 @@ export default function App() {
                                 </div>
                               </div>
                             </td>
-                            <td className="px-8 py-5">
+                            <td className="px-4 sm:px-6 lg:px-8 py-3 sm:py-4 lg:py-5">
                               <span className="text-xs font-bold text-brand-ink">{p.type}</span>
                             </td>
-                            <td className="px-8 py-5">
+                            <td className="px-4 sm:px-6 lg:px-8 py-3 sm:py-4 lg:py-5">
                               <p className="text-xs font-bold text-brand-ink">{formatDate(p.issueDate)}</p>
                             </td>
-                            <td className="px-8 py-5">
+                            <td className="px-4 sm:px-6 lg:px-8 py-3 sm:py-4 lg:py-5">
                               <div className="flex items-center justify-end gap-2">
                                 {p.status === 'Pending' ? (
                                   <>
@@ -2090,7 +2189,7 @@ export default function App() {
                                 <button 
                                   onClick={() => handleDeletePass(p.id || (p as any)._id)}
                                   disabled={deletingIds.has(p.id || (p as any)._id)}
-                                  className={`p-2.5 rounded-xl transition-all shadow-sm border ${
+                                  className={`p-2 sm:p-2.5 rounded-xl transition-all shadow-sm border ${
                                     deletingIds.has(p.id || (p as any)._id)
                                     ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
                                     : 'bg-rose-50 text-rose-600 border-rose-100 hover:bg-rose-600 hover:text-white'
@@ -2105,36 +2204,38 @@ export default function App() {
                         ))}
                       </tbody>
                     </table>
+                    </div>
                   </div>
                 </div>
               )}
 
-                  {adminView === 'departments' && (
-                <div className="space-y-6">
-                  <div className="flex justify-between items-center">
-                    <h2 className="text-2xl font-black text-brand-ink">Department Management</h2>
+              {adminView === 'departments' && (
+                <div className="space-y-4 sm:space-y-6">
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                    <h2 className="text-xl sm:text-2xl font-black text-brand-ink">Department Management</h2>
                     <button 
                       onClick={() => setDeptModal({ isOpen: true, department: null, isEditing: false })}
-                      className="bg-brand-primary text-white px-6 py-3 rounded-2xl font-extrabold flex items-center gap-2 shadow-lg shadow-brand-primary/20"
+                      className="bg-brand-primary text-white px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl font-extrabold flex items-center gap-2 shadow-lg shadow-brand-primary/20 text-sm sm:text-base whitespace-nowrap"
                     >
-                      <PlusCircle className="w-5 h-5" />
-                      Create Department
+                      <PlusCircle className="w-4 h-4 sm:w-5 sm:h-5" />
+                      <span className="hidden sm:inline">Create Department</span>
+                      <span className="sm:hidden">Create</span>
                     </button>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                     {departments.map((dept, i) => (
-                      <div key={dept.id || dept._id || `dept-${i}`} className="bg-white p-8 rounded-[2.5rem] border-2 border-slate-400 shadow-md group hover:shadow-xl hover:shadow-brand-primary/10 transition-all">
-                        <div className="flex justify-between items-start mb-6">
-                          <div className="w-12 h-12 bg-brand-bg rounded-2xl flex items-center justify-center">
-                            <LayoutDashboard className="text-brand-primary w-6 h-6" />
+                      <div key={dept.id || dept._id || `dept-${i}`} className="bg-white p-4 sm:p-6 lg:p-8 rounded-2xl sm:rounded-[2rem] lg:rounded-[2.5rem] border-2 border-slate-400 shadow-md group hover:shadow-xl hover:shadow-brand-primary/10 transition-all">
+                        <div className="flex justify-between items-start mb-4 sm:mb-6">
+                          <div className="w-10 h-10 sm:w-12 sm:h-12 bg-brand-bg rounded-xl sm:rounded-2xl flex items-center justify-center">
+                            <LayoutDashboard className="text-brand-primary w-5 h-5 sm:w-6 sm:h-6" />
                           </div>
                           <div className="flex gap-2">
                             <motion.button 
                               whileTap={{ opacity: [1, 0.2, 1], scale: 0.95 }}
                               transition={{ duration: 0.2 }}
                               onClick={() => setDeptModal({ isOpen: true, department: dept, isEditing: true })}
-                              className="px-4 py-2 bg-blue-50 text-blue-600 rounded-xl font-black text-[10px] uppercase tracking-widest border border-blue-100"
+                              className="px-3 sm:px-4 py-1.5 sm:py-2 bg-blue-50 text-blue-600 rounded-lg sm:rounded-xl font-black text-[10px] uppercase tracking-widest border border-blue-100"
                             >
                               Edit
                             </motion.button>
@@ -2143,7 +2244,7 @@ export default function App() {
                               transition={{ duration: 0.2 }}
                               onClick={() => handleDeleteDept(dept.id || (dept as any)._id)}
                               disabled={deletingIds.has(dept.id || (dept as any)._id)}
-                              className={`px-4 py-2 rounded-xl font-black text-[10px] uppercase tracking-widest border transition-all ${
+                              className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl font-black text-[10px] uppercase tracking-widest border transition-all ${
                                 deletingIds.has(dept.id || (dept as any)._id) 
                                 ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed' 
                                 : 'bg-red-50 text-red-600 border-red-100 hover:bg-red-600 hover:text-white'
@@ -2153,8 +2254,8 @@ export default function App() {
                             </motion.button>
                           </div>
                         </div>
-                        <h3 className="text-xl font-black text-brand-ink mb-1">{dept.name}</h3>
-                        <p className="text-sm font-bold text-brand-gray mb-6">
+                        <h3 className="text-lg sm:text-xl font-black text-brand-ink mb-1">{dept.name}</h3>
+                        <p className="text-sm font-bold text-brand-gray mb-4 sm:mb-6">
                           {dept.description || 'No description provided.'}
                         </p>
                       </div>
@@ -2162,25 +2263,25 @@ export default function App() {
                   </div>
 
                   {deptModal.isOpen && (
-                    <div className="fixed inset-0 bg-brand-ink/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+                    <div className="fixed inset-0 bg-brand-ink/40 backdrop-blur-sm z-[100] flex items-center justify-center p-3 sm:p-4">
                       <motion.div 
                         initial={{ opacity: 0, scale: 0.9 }}
                         animate={{ opacity: 1, scale: 1 }}
-                        className="bg-white w-full max-w-md rounded-[2.5rem] p-10 shadow-2xl"
+                        className="bg-white w-full max-w-md rounded-2xl sm:rounded-[2.5rem] p-6 sm:p-10 shadow-2xl"
                       >
-                        <h3 className="text-2xl font-black text-brand-ink mb-8">{deptModal.isEditing ? 'Update Department' : 'New Department'}</h3>
-                        <form onSubmit={handleSaveDept} className="space-y-6">
+                        <h3 className="text-xl sm:text-2xl font-black text-brand-ink mb-6 sm:mb-8">{deptModal.isEditing ? 'Update Department' : 'New Department'}</h3>
+                        <form onSubmit={handleSaveDept} className="space-y-4 sm:space-y-6">
                           <div className="space-y-1.5">
                             <label className="text-[10px] font-black uppercase text-brand-gray tracking-widest ml-1">Department Name</label>
-                            <input name="name" defaultValue={deptModal.department?.name} placeholder="e.g. Computer Science" className="w-full bg-brand-bg rounded-2xl px-5 py-4 text-sm font-bold border-2 border-slate-400 focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/10 transition-all outline-none" required />
+                            <input name="name" defaultValue={deptModal.department?.name} placeholder="e.g. Computer Science" className="w-full bg-brand-bg rounded-xl sm:rounded-2xl px-4 sm:px-5 py-3 sm:py-4 text-sm font-bold border-2 border-slate-400 focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/10 transition-all outline-none" required />
                           </div>
                           <div className="space-y-1.5">
                             <label className="text-[10px] font-black uppercase text-brand-gray tracking-widest ml-1">Description</label>
-                            <textarea name="description" defaultValue={deptModal.department?.description} placeholder="Short description..." rows={3} className="w-full bg-brand-bg rounded-2xl px-5 py-4 text-sm font-bold border-2 border-slate-400 focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/10 transition-all outline-none resize-none"></textarea>
+                            <textarea name="description" defaultValue={deptModal.department?.description} placeholder="Short description..." rows={3} className="w-full bg-brand-bg rounded-xl sm:rounded-2xl px-4 sm:px-5 py-3 sm:py-4 text-sm font-bold border-2 border-slate-400 focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/10 transition-all outline-none resize-none"></textarea>
                           </div>
-                          <div className="flex gap-4 pt-4">
-                             <button type="button" onClick={() => setDeptModal({ isOpen: false, department: null, isEditing: false })} className="flex-1 px-8 py-4 rounded-2xl font-bold text-brand-gray hover:bg-gray-100 transition-all">Cancel</button>
-                             <button type="submit" className="flex-1 px-8 py-4 rounded-2xl font-bold bg-brand-primary text-white shadow-lg shadow-brand-primary/20 hover:scale-105 transition-all">Save Department</button>
+                          <div className="flex gap-3 sm:gap-4 pt-2 sm:pt-4">
+                             <button type="button" onClick={() => setDeptModal({ isOpen: false, department: null, isEditing: false })} className="flex-1 px-4 sm:px-8 py-3 sm:py-4 rounded-xl sm:rounded-2xl font-bold text-brand-gray hover:bg-gray-100 transition-all text-sm sm:text-base">Cancel</button>
+                             <button type="submit" className="flex-1 px-4 sm:px-8 py-3 sm:py-4 rounded-xl sm:rounded-2xl font-bold bg-brand-primary text-white shadow-lg shadow-brand-primary/20 hover:scale-105 transition-all text-sm sm:text-base">Save Department</button>
                           </div>
                         </form>
                       </motion.div>
@@ -2190,31 +2291,32 @@ export default function App() {
               )}
 
               {adminView === 'routes' && (
-                <div className="space-y-6">
-                  <div className="flex justify-between items-center">
-                    <h2 className="text-2xl font-black text-brand-ink">Bus Route & Fare Management</h2>
+                <div className="space-y-4 sm:space-y-6">
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                    <h2 className="text-xl sm:text-2xl font-black text-brand-ink">Bus Route & Fare Management</h2>
                     <button 
                       onClick={() => setRouteModal({ isOpen: true, route: null, isEditing: false })}
-                      className="bg-brand-primary text-white px-6 py-3 rounded-2xl font-extrabold flex items-center gap-2 shadow-lg shadow-brand-primary/20"
+                      className="bg-brand-primary text-white px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl font-extrabold flex items-center gap-2 shadow-lg shadow-brand-primary/20 text-sm sm:text-base whitespace-nowrap"
                     >
-                      <PlusCircle className="w-5 h-5" />
-                      Add New Route
+                      <PlusCircle className="w-4 h-4 sm:w-5 sm:h-5" />
+                      <span className="hidden sm:inline">Add New Route</span>
+                      <span className="sm:hidden">Add Route</span>
                     </button>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                     {routes.map((route, i) => (
-                      <div key={route.id || route._id || `route-${i}`} className="bg-white p-8 rounded-[2.5rem] border-2 border-slate-400 shadow-md group hover:shadow-xl hover:shadow-brand-primary/10 transition-all">
-                        <div className="flex justify-between items-start mb-6">
-                          <div className="w-12 h-12 bg-brand-bg rounded-2xl flex items-center justify-center">
-                            <Bus className="text-brand-primary w-6 h-6" />
+                      <div key={route.id || route._id || `route-${i}`} className="bg-white p-4 sm:p-6 lg:p-8 rounded-2xl sm:rounded-[2rem] lg:rounded-[2.5rem] border-2 border-slate-400 shadow-md group hover:shadow-xl hover:shadow-brand-primary/10 transition-all">
+                        <div className="flex justify-between items-start mb-4 sm:mb-6">
+                          <div className="w-10 h-10 sm:w-12 sm:h-12 bg-brand-bg rounded-xl sm:rounded-2xl flex items-center justify-center">
+                            <Bus className="text-brand-primary w-5 h-5 sm:w-6 sm:h-6" />
                           </div>
                           <div className="flex gap-2">
                             <motion.button 
                               whileTap={{ opacity: [1, 0.2, 1], scale: 0.95 }}
                               transition={{ duration: 0.2 }}
                               onClick={() => setRouteModal({ isOpen: true, route, isEditing: true })}
-                              className="px-4 py-2 bg-blue-50 text-blue-600 rounded-xl font-black text-[10px] uppercase tracking-widest border border-blue-100"
+                              className="px-3 sm:px-4 py-1.5 sm:py-2 bg-blue-50 text-blue-600 rounded-lg sm:rounded-xl font-black text-[10px] uppercase tracking-widest border border-blue-100"
                             >
                               Edit
                             </motion.button>
@@ -2223,7 +2325,7 @@ export default function App() {
                               transition={{ duration: 0.2 }}
                               onClick={() => handleDeleteRoute(route.id || (route as any)._id)}
                               disabled={deletingIds.has(route.id || (route as any)._id)}
-                              className={`px-4 py-2 rounded-xl font-black text-[10px] uppercase tracking-widest border transition-all ${
+                              className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl font-black text-[10px] uppercase tracking-widest border transition-all ${
                                 deletingIds.has(route.id || (route as any)._id) 
                                 ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed' 
                                 : 'bg-red-50 text-red-600 border-red-100 hover:bg-red-600 hover:text-white'
@@ -2233,55 +2335,55 @@ export default function App() {
                             </motion.button>
                           </div>
                         </div>
-                        <h3 className="text-xl font-black text-brand-ink mb-1">{route.routeName}</h3>
+                        <h3 className="text-lg sm:text-xl font-black text-brand-ink mb-1">{route.routeName}</h3>
                         <p className="text-sm font-bold text-brand-gray flex items-center gap-2 mb-2">
                           {route.startPlace} <ChevronRight className="w-3 h-3" /> {route.endPlace}
                         </p>
-                        <p className="text-[10px] font-black uppercase text-brand-primary tracking-widest mb-6">Dist: {route.distance} KM</p>
-                        <div className="pt-6 border-t-2 border-brand-primary/10 flex justify-between items-center">
+                        <p className="text-[10px] font-black uppercase text-brand-primary tracking-widest mb-4 sm:mb-6">Dist: {route.distance} KM</p>
+                        <div className="pt-4 sm:pt-6 border-t-2 border-brand-primary/10 flex justify-between items-center">
                           <span className="text-[10px] font-black uppercase text-brand-gray tracking-widest">Fare</span>
-                          <span className="text-2xl font-black text-brand-primary">₹{route.fare}</span>
+                          <span className="text-xl sm:text-2xl font-black text-brand-primary">₹{route.fare}</span>
                         </div>
                       </div>
                     ))}
                   </div>
 
                   {routeModal.isOpen && (
-                    <div className="fixed inset-0 bg-brand-ink/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+                    <div className="fixed inset-0 bg-brand-ink/40 backdrop-blur-sm z-[100] flex items-center justify-center p-3 sm:p-4">
                       <motion.div 
                         initial={{ opacity: 0, scale: 0.9 }}
                         animate={{ opacity: 1, scale: 1 }}
-                        className="bg-white w-full max-w-md rounded-[2.5rem] p-10 shadow-2xl"
+                        className="bg-white w-full max-w-md rounded-2xl sm:rounded-[2.5rem] p-6 sm:p-10 shadow-2xl"
                       >
-                        <h3 className="text-2xl font-black text-brand-ink mb-8">{routeModal.isEditing ? 'Update Route' : 'New Bus Route'}</h3>
-                        <form onSubmit={handleSaveRoute} className="space-y-6">
+                        <h3 className="text-xl sm:text-2xl font-black text-brand-ink mb-6 sm:mb-8">{routeModal.isEditing ? 'Update Route' : 'New Bus Route'}</h3>
+                        <form onSubmit={handleSaveRoute} className="space-y-4 sm:space-y-6">
                           <div className="space-y-1.5">
                             <label className="text-[10px] font-black uppercase text-brand-gray tracking-widest ml-1">Route Name</label>
-                            <input name="routeName" defaultValue={routeModal.route?.routeName} placeholder="e.g. Line 42" className="w-full bg-brand-bg rounded-2xl px-5 py-4 text-sm font-bold border-2 border-slate-400 focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/10 transition-all outline-none" required />
+                            <input name="routeName" defaultValue={routeModal.route?.routeName} placeholder="e.g. Line 42" className="w-full bg-brand-bg rounded-xl sm:rounded-2xl px-4 sm:px-5 py-3 sm:py-4 text-sm font-bold border-2 border-slate-400 focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/10 transition-all outline-none" required />
                           </div>
-                          <div className="grid grid-cols-2 gap-4">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                              <div className="space-y-1.5">
                                <label className="text-[10px] font-black uppercase text-brand-gray tracking-widest ml-1">Start Place</label>
-                               <input name="startPlace" defaultValue={routeModal.route?.startPlace} placeholder="Origin" className="w-full bg-brand-bg rounded-2xl px-5 py-4 text-sm font-bold border-2 border-slate-400 focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/10 transition-all outline-none" required />
+                               <input name="startPlace" defaultValue={routeModal.route?.startPlace} placeholder="Origin" className="w-full bg-brand-bg rounded-xl sm:rounded-2xl px-4 sm:px-5 py-3 sm:py-4 text-sm font-bold border-2 border-slate-400 focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/10 transition-all outline-none" required />
                              </div>
                              <div className="space-y-1.5">
                                <label className="text-[10px] font-black uppercase text-brand-gray tracking-widest ml-1">End Place</label>
-                               <input name="endPlace" defaultValue={routeModal.route?.endPlace} placeholder="End Point" className="w-full bg-brand-bg rounded-2xl px-5 py-4 text-sm font-bold border-2 border-slate-400 focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/10 transition-all outline-none" required />
+                               <input name="endPlace" defaultValue={routeModal.route?.endPlace} placeholder="End Point" className="w-full bg-brand-bg rounded-xl sm:rounded-2xl px-4 sm:px-5 py-3 sm:py-4 text-sm font-bold border-2 border-slate-400 focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/10 transition-all outline-none" required />
                              </div>
                           </div>
-                          <div className="grid grid-cols-2 gap-4">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                              <div className="space-y-1.5">
                                <label className="text-[10px] font-black uppercase text-brand-gray tracking-widest ml-1">Distance (KM)</label>
-                               <input name="distance" type="number" step="0.1" defaultValue={routeModal.route?.distance} placeholder="In Kilometers" className="w-full bg-brand-bg rounded-2xl px-5 py-4 text-sm font-bold border-2 border-slate-400 focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/10 transition-all outline-none" required />
+                               <input name="distance" type="number" step="0.1" defaultValue={routeModal.route?.distance} placeholder="In Kilometers" className="w-full bg-brand-bg rounded-xl sm:rounded-2xl px-4 sm:px-5 py-3 sm:py-4 text-sm font-bold border-2 border-slate-400 focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/10 transition-all outline-none" required />
                              </div>
                              <div className="space-y-1.5">
                                <label className="text-[10px] font-black uppercase text-brand-gray tracking-widest ml-1">Fare (₹)</label>
-                               <input name="fare" type="number" defaultValue={routeModal.route?.fare} placeholder="Price in INR" className="w-full bg-brand-bg rounded-2xl px-5 py-4 text-sm font-bold border-2 border-slate-400 focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/10 transition-all outline-none" required />
+                               <input name="fare" type="number" defaultValue={routeModal.route?.fare} placeholder="Price in INR" className="w-full bg-brand-bg rounded-xl sm:rounded-2xl px-4 sm:px-5 py-3 sm:py-4 text-sm font-bold border-2 border-slate-400 focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/10 transition-all outline-none" required />
                              </div>
                           </div>
-                          <div className="flex gap-4 pt-4">
-                             <button type="button" onClick={() => setRouteModal({ isOpen: false, route: null, isEditing: false })} className="flex-1 px-8 py-4 rounded-2xl font-bold text-brand-gray hover:bg-gray-100 transition-all">Cancel</button>
-                             <button type="submit" className="flex-1 px-8 py-4 rounded-2xl font-bold bg-brand-primary text-white shadow-lg shadow-brand-primary/20 hover:scale-105 transition-all">Save Route</button>
+                          <div className="flex gap-3 sm:gap-4 pt-2 sm:pt-4">
+                             <button type="button" onClick={() => setRouteModal({ isOpen: false, route: null, isEditing: false })} className="flex-1 px-4 sm:px-8 py-3 sm:py-4 rounded-xl sm:rounded-2xl font-bold text-brand-gray hover:bg-gray-100 transition-all text-sm sm:text-base">Cancel</button>
+                             <button type="submit" className="flex-1 px-4 sm:px-8 py-3 sm:py-4 rounded-xl sm:rounded-2xl font-bold bg-brand-primary text-white shadow-lg shadow-brand-primary/20 hover:scale-105 transition-all text-sm sm:text-base">Save Route</button>
                           </div>
                         </form>
                       </motion.div>
@@ -2733,23 +2835,23 @@ export default function App() {
                className="space-y-6"
             >
               {showApplicationForm ? (
-                <div className="max-w-4xl bg-white rounded-[2.5rem] shadow-sm border-2 border-slate-300 overflow-hidden">
-                  <div className="bg-brand-primary p-12 text-white relative">
-                    <div className="relative z-10 flex justify-between items-start">
-                      <div>
-                        <h2 className="text-4xl font-black mb-2 leading-tight text-white">Application Form</h2>
-                        <p className="opacity-80 font-medium tracking-tight text-white/80">Complete the form below to apply for your digital bus pass.</p>
+                <div className="max-w-4xl mx-auto bg-white rounded-2xl sm:rounded-[2rem] lg:rounded-[2.5rem] shadow-sm border-2 border-slate-300 overflow-hidden">
+                  <div className="bg-brand-primary p-6 sm:p-8 lg:p-12 text-white relative">
+                    <div className="relative z-10 flex justify-between items-start gap-4">
+                      <div className="flex-1 min-w-0">
+                        <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black mb-2 leading-tight text-white">Application Form</h2>
+                        <p className="opacity-80 font-medium tracking-tight text-white/80 text-sm sm:text-base">Complete the form below to apply for your digital bus pass.</p>
                       </div>
                       <button 
                         onClick={() => setShowApplicationForm(false)}
-                        className="bg-white/20 hover:bg-white/30 p-2 rounded-xl transition-colors text-white"
+                        className="bg-white/20 hover:bg-white/30 p-2 rounded-xl transition-colors text-white flex-shrink-0"
                       >
                         <X className="w-5 h-5" />
                       </button>
                     </div>
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-20 -mt-20 blur-3xl"></div>
+                    <div className="absolute top-0 right-0 w-32 sm:w-64 h-32 sm:h-64 bg-white/10 rounded-full -mr-10 sm:-mr-20 -mt-10 sm:-mt-20 blur-3xl"></div>
                   </div>
-                  <form className="p-12 space-y-10" onSubmit={handleApply}>
+                  <form className="p-4 sm:p-8 lg:p-12 space-y-8 sm:space-y-10" onSubmit={handleApply}>
                     {formError && (
                       <div className="bg-red-50 border-2 border-red-100 p-4 rounded-xl flex items-center gap-3 text-red-600 font-bold text-sm">
                         <AlertCircle className="w-5 h-5" />
@@ -2758,15 +2860,15 @@ export default function App() {
                     )}
 
                     {/* Student Information Section */}
-                    <div className="space-y-6">
-                      <div className="flex items-center gap-3 border-b-2 border-brand-bg pb-4 mb-6">
-                        <div className="w-8 h-8 bg-brand-primary/10 rounded-lg flex items-center justify-center">
-                          <User className="w-4 h-4 text-brand-primary" />
+                    <div className="space-y-4 sm:space-y-6">
+                      <div className="flex items-center gap-3 border-b-2 border-brand-bg pb-3 sm:pb-4 mb-4 sm:mb-6">
+                        <div className="w-7 h-7 sm:w-8 sm:h-8 bg-brand-primary/10 rounded-lg flex items-center justify-center">
+                          <User className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-brand-primary" />
                         </div>
-                        <h3 className="text-xl font-black text-brand-ink">Student Information</h3>
+                        <h3 className="text-lg sm:text-xl font-black text-brand-ink">Student Information</h3>
                       </div>
                       
-                      <div className="grid md:grid-cols-2 gap-8">
+                      <div className="grid md:grid-cols-2 gap-4 sm:gap-8">
                         <div className="space-y-1.5">
                            <label className="text-[10px] font-black uppercase text-brand-gray tracking-widest ml-1">Full Name</label>
                            <input 
@@ -2774,7 +2876,7 @@ export default function App() {
                              name="fullName"
                              value={applyForm.fullName}
                              onChange={(e) => setApplyForm({...applyForm, fullName: e.target.value})}
-                             className={`w-full bg-brand-bg border-2 focus:ring-4 focus:ring-brand-primary/10 rounded-2xl px-5 py-4 text-sm font-bold transition-all outline-none ${formError?.includes('Full Name') ? 'border-red-500 bg-red-50/10' : 'border-slate-400 focus:border-brand-primary'}`}
+                             className={`w-full bg-brand-bg border-2 focus:ring-4 focus:ring-brand-primary/10 rounded-xl sm:rounded-2xl px-4 sm:px-5 py-3 sm:py-4 text-sm font-bold transition-all outline-none ${formError?.includes('Full Name') ? 'border-red-500 bg-red-50/10' : 'border-slate-400 focus:border-brand-primary'}`}
                              placeholder="Karan Maurya"
                            />
                            {formError?.includes('Full Name') && <p className="text-[10px] text-red-500 font-black uppercase mt-1 ml-1">Fill this</p>}
@@ -2786,21 +2888,21 @@ export default function App() {
                              name="studentId"
                              value={applyForm.studentId}
                              onChange={(e) => setApplyForm({...applyForm, studentId: e.target.value})}
-                             className={`w-full bg-brand-bg border-2 focus:ring-4 focus:ring-brand-primary/10 rounded-2xl px-5 py-4 text-sm font-bold transition-all outline-none ${formError?.includes('Student ID') ? 'border-red-500 bg-red-50/10' : 'border-slate-400 focus:border-brand-primary'}`}
+                             className={`w-full bg-brand-bg border-2 focus:ring-4 focus:ring-brand-primary/10 rounded-xl sm:rounded-2xl px-4 sm:px-5 py-3 sm:py-4 text-sm font-bold transition-all outline-none ${formError?.includes('Student ID') ? 'border-red-500 bg-red-50/10' : 'border-slate-400 focus:border-brand-primary'}`}
                              placeholder="CPU/2026/001"
                            />
                            {formError?.includes('Student ID') && <p className="text-[10px] text-red-500 font-black uppercase mt-1 ml-1">Fill this</p>}
                         </div>
                       </div>
 
-                      <div className="grid md:grid-cols-2 gap-8">
+                      <div className="grid md:grid-cols-2 gap-4 sm:gap-8">
                         <div className="space-y-1.5">
                            <label className="text-[10px] font-black uppercase text-brand-gray tracking-widest ml-1">Department</label>
                            <select 
                              name="department"
                              value={applyForm.department}
                              onChange={(e) => setApplyForm({...applyForm, department: e.target.value})}
-                             className={`w-full bg-brand-bg border-2 focus:ring-4 focus:ring-brand-primary/10 rounded-2xl px-5 py-4 text-sm font-bold transition-all outline-none ${formError?.includes('Department') ? 'border-red-500 bg-red-50/10' : 'border-slate-400 focus:border-brand-primary'}`}
+                             className={`w-full bg-brand-bg border-2 focus:ring-4 focus:ring-brand-primary/10 rounded-xl sm:rounded-2xl px-4 sm:px-5 py-3 sm:py-4 text-sm font-bold transition-all outline-none ${formError?.includes('Department') ? 'border-red-500 bg-red-50/10' : 'border-slate-400 focus:border-brand-primary'}`}
                            >
                               <option value="">Select Department</option>
                               {departments.map((dept, idx) => (
@@ -2816,7 +2918,7 @@ export default function App() {
                            <select 
                              value={applyForm.year}
                              onChange={(e) => setApplyForm({...applyForm, year: e.target.value})}
-                             className="w-full bg-brand-bg border-2 border-slate-400 focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/10 rounded-2xl px-5 py-4 text-sm font-bold transition-all outline-none"
+                             className="w-full bg-brand-bg border-2 border-slate-400 focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/10 rounded-xl sm:rounded-2xl px-4 sm:px-5 py-3 sm:py-4 text-sm font-bold transition-all outline-none"
                            >
                               <option>1st Year</option>
                               <option>2nd Year</option>
@@ -2826,7 +2928,7 @@ export default function App() {
                         </div>
                       </div>
 
-                      <div className="grid md:grid-cols-2 gap-8">
+                      <div className="grid md:grid-cols-2 gap-4 sm:gap-8">
                         <div className="space-y-1.5">
                            <label className="text-[10px] font-black uppercase text-brand-gray tracking-widest ml-1">Mobile Number</label>
                            <input 
@@ -2834,7 +2936,7 @@ export default function App() {
                              name="mobile"
                              value={applyForm.mobile}
                              onChange={(e) => setApplyForm({...applyForm, mobile: e.target.value})}
-                             className={`w-full bg-brand-bg border-2 focus:ring-4 focus:ring-brand-primary/10 rounded-2xl px-5 py-4 text-sm font-bold transition-all outline-none ${formError?.includes('Mobile Number') ? 'border-red-500 bg-red-50/10' : 'border-slate-400 focus:border-brand-primary'}`}
+                             className={`w-full bg-brand-bg border-2 focus:ring-4 focus:ring-brand-primary/10 rounded-xl sm:rounded-2xl px-4 sm:px-5 py-3 sm:py-4 text-sm font-bold transition-all outline-none ${formError?.includes('Mobile Number') ? 'border-red-500 bg-red-50/10' : 'border-slate-400 focus:border-brand-primary'}`}
                              placeholder="+91 9876543210"
                            />
                            {formError?.includes('Mobile Number') && <p className="text-[10px] text-red-500 font-black uppercase mt-1 ml-1">Fill this</p>}
@@ -2846,7 +2948,7 @@ export default function App() {
                              name="email"
                              value={applyForm.email}
                              onChange={(e) => setApplyForm({...applyForm, email: e.target.value})}
-                             className={`w-full bg-brand-bg border-2 focus:ring-4 focus:ring-brand-primary/10 rounded-2xl px-5 py-4 text-sm font-bold transition-all outline-none ${formError?.includes('Email Address') ? 'border-red-500 bg-red-50/10' : 'border-slate-400 focus:border-brand-primary'}`}
+                             className={`w-full bg-brand-bg border-2 focus:ring-4 focus:ring-brand-primary/10 rounded-xl sm:rounded-2xl px-4 sm:px-5 py-3 sm:py-4 text-sm font-bold transition-all outline-none ${formError?.includes('Email Address') ? 'border-red-500 bg-red-50/10' : 'border-slate-400 focus:border-brand-primary'}`}
                              placeholder="karan@example.com"
                            />
                            {formError?.includes('Email Address') && <p className="text-[10px] text-red-500 font-black uppercase mt-1 ml-1">Fill this</p>}
@@ -2855,22 +2957,22 @@ export default function App() {
                     </div>
 
                     {/* Route Details Section */}
-                    <div className="space-y-6">
-                      <div className="flex items-center gap-3 border-b-2 border-brand-bg pb-4 mb-6">
-                        <div className="w-8 h-8 bg-brand-primary/10 rounded-lg flex items-center justify-center">
-                          <Bus className="w-4 h-4 text-brand-primary" />
+                    <div className="space-y-4 sm:space-y-6">
+                      <div className="flex items-center gap-3 border-b-2 border-brand-bg pb-3 sm:pb-4 mb-4 sm:mb-6">
+                        <div className="w-7 h-7 sm:w-8 sm:h-8 bg-brand-primary/10 rounded-lg flex items-center justify-center">
+                          <Bus className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-brand-primary" />
                         </div>
-                        <h3 className="text-xl font-black text-brand-ink">Route Details</h3>
+                        <h3 className="text-lg sm:text-xl font-black text-brand-ink">Route Details</h3>
                       </div>
 
-                      <div className="grid md:grid-cols-2 gap-8">
+                      <div className="grid md:grid-cols-2 gap-4 sm:gap-8">
                         <div className="space-y-1.5">
                            <label className="text-[10px] font-black uppercase text-brand-gray tracking-widest ml-1">From (Pickup Stop)</label>
                            <select 
                              name="from"
                              value={applyForm.from}
                              onChange={(e) => setApplyForm({...applyForm, from: e.target.value})}
-                             className={`w-full bg-brand-bg border-2 focus:ring-4 focus:ring-brand-primary/10 rounded-2xl px-5 py-4 text-sm font-bold transition-all outline-none ${formError?.includes('Pickup Stop') ? 'border-red-500 bg-red-50/10' : 'border-slate-400 focus:border-brand-primary'}`}
+                             className={`w-full bg-brand-bg border-2 focus:ring-4 focus:ring-brand-primary/10 rounded-xl sm:rounded-2xl px-4 sm:px-5 py-3 sm:py-4 text-sm font-bold transition-all outline-none ${formError?.includes('Pickup Stop') ? 'border-red-500 bg-red-50/10' : 'border-slate-400 focus:border-brand-primary'}`}
                            >
                              <option value="">Select Pickup Stop</option>
                              {routes.map((route, idx) => (
@@ -2887,19 +2989,19 @@ export default function App() {
                              type="text"
                              value={applyForm.to}
                              readOnly
-                             className="w-full bg-gray-50 border-2 border-slate-400 rounded-2xl px-5 py-4 text-sm font-bold outline-none cursor-not-allowed text-brand-gray"
+                             className="w-full bg-gray-50 border-2 border-slate-400 rounded-xl sm:rounded-2xl px-4 sm:px-5 py-3 sm:py-4 text-sm font-bold outline-none cursor-not-allowed text-brand-gray"
                            />
                         </div>
                       </div>
                     </div>
 
                     {/* Document Upload Section */}
-                    <div className="space-y-6">
-                      <div className="flex items-center gap-3 border-b-2 border-brand-bg pb-4 mb-6">
-                        <div className="w-8 h-8 bg-brand-primary/10 rounded-lg flex items-center justify-center">
-                          <Upload className="w-4 h-4 text-brand-primary" />
+                    <div className="space-y-4 sm:space-y-6">
+                      <div className="flex items-center gap-3 border-b-2 border-brand-bg pb-3 sm:pb-4 mb-4 sm:mb-6">
+                        <div className="w-7 h-7 sm:w-8 sm:h-8 bg-brand-primary/10 rounded-lg flex items-center justify-center">
+                          <Upload className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-brand-primary" />
                         </div>
-                        <h3 className="text-xl font-black text-brand-ink">Document Upload</h3>
+                        <h3 className="text-lg sm:text-xl font-black text-brand-ink">Document Upload</h3>
                       </div>
 
                       <div className="space-y-4">
@@ -2918,7 +3020,7 @@ export default function App() {
                           />
                           <label 
                             htmlFor="id-upload"
-                            className={`flex flex-col items-center justify-center w-full min-h-[160px] bg-brand-bg border-2 border-dashed focus-within:ring-4 focus-within:ring-brand-primary/10 rounded-[2rem] cursor-pointer transition-all group p-6 ${formError?.includes('upload ID Proof') ? 'border-red-500 bg-red-50/10' : 'border-slate-400 hover:border-brand-primary focus-within:border-brand-primary'}`}
+                            className={`flex flex-col items-center justify-center w-full min-h-[120px] sm:min-h-[160px] bg-brand-bg border-2 border-dashed focus-within:ring-4 focus-within:ring-brand-primary/10 rounded-xl sm:rounded-[2rem] cursor-pointer transition-all group p-4 sm:p-6 ${formError?.includes('upload ID Proof') ? 'border-red-500 bg-red-50/10' : 'border-slate-400 hover:border-brand-primary focus-within:border-brand-primary'}`}
                           >
                             {applyForm.idProof ? (
                               <div className="flex flex-col items-center gap-2">
@@ -2943,14 +3045,14 @@ export default function App() {
                       </div>
                     </div>
 
-                    <div className="pt-6 border-t-2 border-brand-bg">
-                      <div className="flex items-center justify-between mb-8">
+                    <div className="pt-4 sm:pt-6 border-t-2 border-brand-bg">
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-0 mb-6 sm:mb-8">
                          <div className="space-y-1">
                             <label className="text-[10px] font-black uppercase text-brand-gray tracking-widest ml-1">Pass Category</label>
                             <select 
                               value={applyForm.passType}
                               onChange={(e) => setApplyForm({...applyForm, passType: e.target.value as PassType})}
-                              className="bg-brand-bg border-2 border-slate-400 focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/10 rounded-xl px-4 py-2 text-xs font-bold transition-all outline-none"
+                              className="bg-brand-bg border-2 border-slate-400 focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/10 rounded-lg sm:rounded-xl px-3 sm:px-4 py-2 text-xs font-bold transition-all outline-none"
                             >
                                <option value="1 Month">1 Month Duration</option>
                                <option value="3 Month">3 Month Duration</option>
@@ -2958,12 +3060,12 @@ export default function App() {
                                <option value="12 Month">12 Month Duration</option>
                             </select>
                          </div>
-                         <div className="text-right">
+                         <div className="text-left sm:text-right w-full sm:w-auto">
                            <p className="text-[10px] font-black uppercase text-brand-gray tracking-widest mb-1">Fare Price</p>
-                           <div className="flex flex-col items-end">
-                             <div className="flex items-center gap-2 px-4 py-2 bg-emerald-50 rounded-xl border border-emerald-100">
+                           <div className="flex flex-col items-start sm:items-end">
+                             <div className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-emerald-50 rounded-xl border border-emerald-100">
                                <label className="text-[10px] font-black uppercase text-emerald-600 tracking-widest">Automatic</label>
-                               <p className="text-2xl font-black text-brand-primary">
+                               <p className="text-xl sm:text-2xl font-black text-brand-primary">
                                  ₹{(routes.find(r => r.startPlace === applyForm.from)?.fare || 0) * (applyForm.passType === '3 Month' ? 3 : applyForm.passType === '6 Month' ? 6 : applyForm.passType === '12 Month' ? 12 : 1)}
                                </p>
                              </div>
@@ -2974,9 +3076,9 @@ export default function App() {
 
                       <button 
                         type="submit"
-                        className="w-full bg-brand-primary hover:bg-brand-primary/90 text-white py-6 rounded-[2rem] font-black text-xl shadow-2xl shadow-brand-primary/20 transition-all active:scale-[0.98] flex items-center justify-center gap-3"
+                        className="w-full bg-brand-primary hover:bg-brand-primary/90 text-white py-4 sm:py-6 rounded-xl sm:rounded-[2rem] font-black text-lg sm:text-xl shadow-2xl shadow-brand-primary/20 transition-all active:scale-[0.98] flex items-center justify-center gap-3"
                       >
-                        <ShieldCheck className="w-6 h-6" />
+                        <ShieldCheck className="w-5 h-5 sm:w-6 sm:h-6" />
                         Submit and Pay
                       </button>
                     </div>
@@ -3100,39 +3202,40 @@ export default function App() {
                initial={{ opacity: 0 }}
                animate={{ opacity: 1 }}
                exit={{ opacity: 0 }}
-               className="bg-white rounded-[2.5rem] shadow-sm border-2 border-brand-primary/10 overflow-hidden"
+               className="bg-white rounded-2xl sm:rounded-[2.5rem] shadow-sm border-2 border-brand-primary/10 overflow-hidden"
             >
-              <table className="w-full text-left">
+              <div className="overflow-x-auto">
+              <table className="w-full text-left min-w-[700px]">
                 <thead className="bg-brand-bg border-b-2 border-brand-primary/10">
                   <tr>
-                    <th className="px-10 py-6 text-[10px] font-black uppercase text-brand-gray tracking-widest">Type</th>
-                    <th className="px-10 py-6 text-[10px] font-black uppercase text-brand-gray tracking-widest">Duration</th>
-                    <th className="px-10 py-6 text-[10px] font-black uppercase text-brand-gray tracking-widest text-right">Amount</th>
-                    <th className="px-10 py-6 text-[10px] font-black uppercase text-brand-gray tracking-widest text-right">Status</th>
-                    <th className="px-10 py-6 text-[10px] font-black uppercase text-brand-gray tracking-widest text-right">Actions</th>
+                    <th className="px-4 sm:px-6 lg:px-10 py-4 sm:py-6 text-[10px] font-black uppercase text-brand-gray tracking-widest">Type</th>
+                    <th className="px-4 sm:px-6 lg:px-10 py-4 sm:py-6 text-[10px] font-black uppercase text-brand-gray tracking-widest">Duration</th>
+                    <th className="px-4 sm:px-6 lg:px-10 py-4 sm:py-6 text-[10px] font-black uppercase text-brand-gray tracking-widest text-right">Amount</th>
+                    <th className="px-4 sm:px-6 lg:px-10 py-4 sm:py-6 text-[10px] font-black uppercase text-brand-gray tracking-widest text-right">Status</th>
+                    <th className="px-4 sm:px-6 lg:px-10 py-4 sm:py-6 text-[10px] font-black uppercase text-brand-gray tracking-widest text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#F0F4FF]">
                   {passes.map((p, i) => (
                     <tr key={p.id || p._id || `hist-${i}`} className="hover:bg-brand-bg/30 transition-colors">
-                      <td className="px-10 py-6">
-                        <div className="flex items-center gap-4">
-                          <div className="w-10 h-10 bg-brand-bg rounded-xl flex items-center justify-center">
-                            <Bus className="text-brand-primary w-4 h-4" />
+                      <td className="px-4 sm:px-6 lg:px-10 py-4 sm:py-6">
+                        <div className="flex items-center gap-3 sm:gap-4">
+                          <div className="w-8 h-8 sm:w-10 sm:h-10 bg-brand-bg rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0">
+                            <Bus className="text-brand-primary w-3.5 h-3.5 sm:w-4 sm:h-4" />
                           </div>
-                          <div>
-                            <p className="font-bold text-brand-ink">{p.type} Pass</p>
+                          <div className="min-w-0">
+                            <p className="font-bold text-brand-ink text-sm sm:text-base truncate">{p.type} Pass</p>
                             <p className="text-[10px] text-brand-gray font-mono tracking-tighter uppercase">#{(p.id || p._id || '').replace('pass_', 'BG-')}</p>
                           </div>
                         </div>
                       </td>
-                      <td className="px-10 py-6">
+                      <td className="px-4 sm:px-6 lg:px-10 py-4 sm:py-6">
                          <p className="font-bold text-sm text-brand-ink">{formatDate(p.issueDate)}</p>
                          <p className="text-[10px] text-brand-gray font-medium">{formatDate(p.expiryDate)}</p>
                       </td>
-                      <td className="px-10 py-6 font-black text-brand-ink text-right">₹{p.price.toLocaleString('en-IN')}</td>
-                      <td className="px-10 py-6 text-right">
-                        <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                      <td className="px-4 sm:px-6 lg:px-10 py-4 sm:py-6 font-black text-brand-ink text-right text-sm sm:text-base">₹{p.price.toLocaleString('en-IN')}</td>
+                      <td className="px-4 sm:px-6 lg:px-10 py-4 sm:py-6 text-right">
+                        <span className={`px-3 sm:px-4 py-1 sm:py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
                           (p.status === 'Active' || p.status === 'Approved') ? 'bg-emerald-100 text-emerald-600' : 
                           p.status === 'Pending Payment' ? 'bg-amber-100 text-amber-600' :
                           'bg-gray-100 text-gray-500'
@@ -3140,31 +3243,31 @@ export default function App() {
                           {p.status}
                         </span>
                       </td>
-                      <td className="px-10 py-6 text-right">
-                        <div className="flex items-center justify-end gap-3">
+                      <td className="px-4 sm:px-6 lg:px-10 py-4 sm:py-6 text-right">
+                        <div className="flex items-center justify-end gap-2 sm:gap-3">
                           {p.status === 'Pending Payment' && (
                              <button 
                                onClick={() => {
                                  setSelectedPassForPayment(p);
                                  setShowPaymentModal(true);
                                }}
-                               className="text-brand-ink hover:text-brand-primary transition-colors h-9 w-9 flex items-center justify-center rounded-lg bg-slate-50 border border-slate-200"
+                               className="text-brand-ink hover:text-brand-primary transition-colors h-8 w-8 sm:h-9 sm:w-9 flex items-center justify-center rounded-lg bg-slate-50 border border-slate-200"
                                title="Pay Now"
                              >
-                               <Wallet className="w-4 h-4" />
+                               <Wallet className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                              </button>
                           )}
                           <button 
                             onClick={() => handleDeleteUserPass(p.id || (p as any)._id)}
                             disabled={deletingIds.has(p.id || (p as any)._id)}
-                            className={`h-9 w-9 flex items-center justify-center rounded-lg border transition-all ${
+                            className={`h-8 w-8 sm:h-9 sm:w-9 flex items-center justify-center rounded-lg border transition-all ${
                               deletingIds.has(p.id || (p as any)._id)
                               ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
                               : 'bg-rose-50 text-rose-600 border-rose-100 hover:bg-rose-600 hover:text-white'
                             }`}
                             title="Delete History"
                           >
-                            {deletingIds.has(p.id || (p as any)._id) ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                            {deletingIds.has(p.id || (p as any)._id) ? <RefreshCw className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-spin" /> : <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}
                           </button>
                         </div>
                       </td>
@@ -3172,8 +3275,9 @@ export default function App() {
                   ))}
                 </tbody>
               </table>
+              </div>
               {passes.length === 0 && (
-                <div className="text-center py-20">
+                <div className="text-center py-12 sm:py-20">
                   <p className="font-bold text-brand-gray">No transactions recorded yet.</p>
                 </div>
               )}
