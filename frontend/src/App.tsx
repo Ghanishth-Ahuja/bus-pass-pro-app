@@ -57,43 +57,6 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import type { BusPass, PassType, UserProfile, PassStatus, BusRoute, Department, AdminSubView, RouteModalState, DepartmentModalState, Payment, AdminReports } from './types';
 
-// Mock Data
-const MOCK_USER: UserProfile = {
-  uid: 'user123',
-  email: 'commuter@citylink.com',
-  displayName: 'Karan Commuter',
-  role: 'User'
-};
-
-const MOCK_PASSES: BusPass[] = [
-  {
-    id: 'pass_001',
-    userId: 'user123',
-    userName: 'Karan Commuter',
-    from: 'Malviya Nagar',
-    to: 'Main Campus Gate',
-    type: '1 Month',
-    issueDate: '2026-03-01',
-    expiryDate: '2026-04-30',
-    status: 'Active',
-    price: 3600
-  },
-  {
-    id: 'pass_000',
-    userId: 'user123',
-    userName: 'Karan Commuter',
-    from: 'Mansarovar',
-    to: 'Main Campus Gate',
-    type: '1 Month',
-    issueDate: '2026-01-01',
-    expiryDate: '2026-02-28',
-    status: 'Expired',
-    price: 3600
-  }
-];
-
-const CHART_COLORS = ['#4361EE', '#7209B7', '#4CC9F0', '#F72585', '#3A0CA3', '#B5179E', '#4895EF', '#560BAD'];
-
 export default function App() {
   const [user, setUser] = useState<UserProfile | null>(() => {
     const saved = localStorage.getItem('buspass_user');
@@ -564,7 +527,9 @@ export default function App() {
       const response = await fetch(`${API_BASE_URL}/api/passes/${user.uid}`);
       const data = await response.json();
       const normalized = data.map((p: any) => ({ ...p, id: p._id || p.id }));
-      setPasses(normalized);
+      // Sort by issueDate descending (latest first)
+      const sorted = normalized.sort((a: any, b: any) => new Date(b.issueDate).getTime() - new Date(a.issueDate).getTime());
+      setPasses(sorted);
     } catch (err) {
       console.error("Failed to fetch passes:", err);
     }
@@ -575,7 +540,9 @@ export default function App() {
       const response = await fetch(`${API_BASE_URL}/api/admin/passes`);
       const data = await response.json();
       const normalized = data.map((p: any) => ({ ...p, id: p._id || p.id }));
-      setAllPasses(normalized);
+      // Sort by issueDate descending (latest first)
+      const sorted = normalized.sort((a: any, b: any) => new Date(b.issueDate).getTime() - new Date(a.issueDate).getTime());
+      setAllPasses(sorted);
     } catch (err) {
       console.error("Failed to fetch all passes:", err);
     }
@@ -1109,11 +1076,11 @@ export default function App() {
       from: applyForm.from,
       to: applyForm.to,
       type: type,
-      issueDate: new Date().toISOString().split('T')[0],
+      issueDate: new Date().toISOString(),
       expiryDate: (() => {
         const d = new Date();
         d.setMonth(d.getMonth() + durationMonths);
-        return d.toISOString().split('T')[0];
+        return d.toISOString();
       })(),
       status: 'Pending Payment',
       price: finalPrice
