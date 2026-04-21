@@ -206,6 +206,7 @@ export default function App() {
   const [allUsers, setAllUsers] = useState<UserProfile[]>([]);
   const [contactForm, setContactForm] = useState({ name: '', email: '', message: '' });
   const [contactErrors, setContactErrors] = useState({ name: false, email: false, message: false });
+  const [contactSubmitStatus, setContactSubmitStatus] = useState<{ type: 'success' | 'error' | null; message: string }>({ type: null, message: '' });
   const nameRef = useRef<HTMLInputElement>(null);
   const emailRef = useRef<HTMLInputElement>(null);
   const messageRef = useRef<HTMLTextAreaElement>(null);
@@ -279,6 +280,7 @@ export default function App() {
 
     setIsSubmittingContact(true);
     setToastStatus(null);
+    setContactSubmitStatus({ type: null, message: '' });
 
     try {
       const resp = await fetch(`${API_BASE_URL}/api/contact`, {
@@ -290,6 +292,7 @@ export default function App() {
       const data = await resp.json();
 
       if (resp.ok && data.success) {
+        setContactSubmitStatus({ type: 'success', message: 'Message sent successfully! We\'ll get back to you soon.' });
         triggerToast('Sent successfully', 'success');
         setContactForm({ 
           name: '', 
@@ -300,6 +303,7 @@ export default function App() {
         throw new Error(data.error || 'Failed to send message');
       }
     } catch (err: any) {
+      setContactSubmitStatus({ type: 'error', message: 'Failed to send message. Please try again later.' });
       triggerToast('Failed to send message. Try again.', 'error');
     } finally {
       setIsSubmittingContact(false);
@@ -1294,6 +1298,16 @@ export default function App() {
                   <p className="text-brand-gray font-medium mb-10">Our average response time is under 15 minutes.</p>
                   
                   <form className="space-y-6" onSubmit={handleContactSubmit}>
+                      {contactSubmitStatus.type && (
+                        <div className={`p-4 rounded-xl flex items-center gap-3 text-sm font-bold ${
+                          contactSubmitStatus.type === 'success' 
+                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
+                            : 'bg-red-50 text-red-700 border border-red-200'
+                        }`}>
+                          {contactSubmitStatus.type === 'success' ? <CheckCircle2 className="w-5 h-5 flex-shrink-0" /> : <AlertCircle className="w-5 h-5 flex-shrink-0" />}
+                          {contactSubmitStatus.message}
+                        </div>
+                      )}
                       <div className="grid md:grid-cols-2 gap-6">
                         <div className="space-y-2">
                           <label className="text-[10px] font-black uppercase text-brand-gray tracking-widest ml-1">Your Name</label>
@@ -1306,6 +1320,7 @@ export default function App() {
                               onChange={(e) => {
                                 setContactForm({ ...contactForm, name: e.target.value });
                                 setContactErrors({ ...contactErrors, name: false });
+                                setContactSubmitStatus({ type: null, message: '' });
                               }}
                             />
                             {contactErrors.name && (
@@ -1324,6 +1339,7 @@ export default function App() {
                               onChange={(e) => {
                                 setContactForm({ ...contactForm, email: e.target.value });
                                 setContactErrors({ ...contactErrors, email: false });
+                                setContactSubmitStatus({ type: null, message: '' });
                               }}
                             />
                             {contactErrors.email && (
@@ -1344,6 +1360,7 @@ export default function App() {
                             onChange={(e) => {
                               setContactForm({ ...contactForm, message: e.target.value });
                               setContactErrors({ ...contactErrors, message: false });
+                              setContactSubmitStatus({ type: null, message: '' });
                             }}
                           ></textarea>
                           {contactErrors.message && (
@@ -2616,6 +2633,16 @@ export default function App() {
                  </div>
 
                  <form className="space-y-8" onSubmit={handleContactSubmit}>
+                    {contactSubmitStatus.type && (
+                      <div className={`p-4 rounded-xl flex items-center gap-3 text-sm font-bold ${
+                        contactSubmitStatus.type === 'success' 
+                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
+                          : 'bg-red-50 text-red-700 border border-red-200'
+                      }`}>
+                        {contactSubmitStatus.type === 'success' ? <CheckCircle2 className="w-5 h-5 flex-shrink-0" /> : <AlertCircle className="w-5 h-5 flex-shrink-0" />}
+                        {contactSubmitStatus.message}
+                      </div>
+                    )}
                     <div className="grid grid-cols-2 gap-8">
                        <div className="space-y-2">
                           <label className="text-[10px] font-black uppercase text-brand-gray tracking-widest ml-1">Your Name</label>
@@ -2628,6 +2655,7 @@ export default function App() {
                               onChange={(e) => {
                                 setContactForm({ ...contactForm, name: e.target.value });
                                 setContactErrors({ ...contactErrors, name: false });
+                                setContactSubmitStatus({ type: null, message: '' });
                               }}
                             />
                             {contactErrors.name && (
@@ -2647,6 +2675,7 @@ export default function App() {
                                onChange={(e) => {
                                  setContactForm({ ...contactForm, email: e.target.value });
                                  setContactErrors({ ...contactErrors, email: false });
+                                 setContactSubmitStatus({ type: null, message: '' });
                                }}
                              />
                              {contactErrors.email && (
@@ -2668,6 +2697,7 @@ export default function App() {
                              onChange={(e) => {
                                setContactForm({ ...contactForm, message: e.target.value });
                                setContactErrors({ ...contactErrors, message: false });
+                               setContactSubmitStatus({ type: null, message: '' });
                              }}
                            ></textarea>
                            {contactErrors.message && (
