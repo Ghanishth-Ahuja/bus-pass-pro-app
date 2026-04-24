@@ -1170,7 +1170,7 @@ export default function App() {
                 <div className="inline-flex items-center gap-2 px-4 py-2 bg-brand-primary/10 text-brand-primary rounded-full text-xs font-black uppercase tracking-widest">
                   <Info className="w-3.5 h-3.5" /> How it Works
                 </div>
-                <h1 className="text-5xl font-black text-brand-ink tracking-tight">Streamlined Transit Management</h1>
+                <h1 className="text-5xl font-black text-brand-ink tracking-tight">Bus Pass Management</h1>
                 <p className="text-xl text-brand-gray font-medium max-w-2xl mx-auto leading-relaxed">
                   Bus Pass Pro digitizes every step of the bus pass lifecycle—from application to issuance.
                 </p>
